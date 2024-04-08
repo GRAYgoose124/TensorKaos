@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "tensorkhaos"
+name = "tensorkaos"
 version = "0.1.0"
 description = ""
 authors = ["Grayson Miller <grayson.miller124@gmail.com>"]
@@ -18,4 +18,4 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.poetry.scripts]
-tkaos = "tensorkhaos.__main__:main"
+tkaos = "tensorkaos.__main__:main"

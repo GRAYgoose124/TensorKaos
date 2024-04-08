@@ -1,11 +1,11 @@
-from .window import TensorKhaos
+from .window import TensorKaos
 from .core.utilities import setup_logging
 
 
 def main():
     setup_logging(__name__)
 
-    app = TensorKhaos()
+    app = TensorKaos()
     app.run()
 
 

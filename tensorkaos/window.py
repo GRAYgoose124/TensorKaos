@@ -6,12 +6,12 @@ from arcade_imgui import ArcadeRenderer
 from .views import *
 
 
-class TensorKhaos(arcade.Window):
+class TensorKaos(arcade.Window):
     def __init__(self):
         super().__init__(
             1280,
             720,
-            "TensorKhaos: on the edge of chaos, there is also order.",
+            "TensorKaos: on the edge of chaos, there is also order.",
             gl_version=(4, 3),
             resizable=True,
         )
