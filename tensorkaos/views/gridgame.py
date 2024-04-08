@@ -1,12 +1,17 @@
 import arcade
 
-from ..core.guiview import GuiView
+from ..core.guiview import GuiView, ViewMixin
 from ..core.utilities import setup_logging
 
 log = setup_logging(__name__)
 
 
-class GridGameView(GuiView):
+class TestFeatureMixin(ViewMixin):
+    def on_update(self, delta_time):
+        log.debug("TestMixin.on_update")
+
+
+class GridGameView(GuiView, TestFeatureMixin):
     def __init__(self, window=None):
         super().__init__(window)
         self.grid_size = (100, 100)

@@ -3,7 +3,7 @@ from .core.utilities import setup_logging
 
 
 def main():
-    setup_logging(__name__)
+    setup_logging()
 
     app = TensorKaos()
     app.run()

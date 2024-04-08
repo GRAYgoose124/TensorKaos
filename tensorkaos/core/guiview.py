@@ -12,7 +12,49 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class GuiView(arcade.View):
+class ViewMixin:
+    pass
+
+
+class MetaViewMixer(type):
+    """Automatically calls super on the main base and all mixins classes when calling a method
+    shared across bases.
+
+    This is facilitated by the composition of each bases methods, such as when a ViewMixin provides an on_update, we now call that after the main class method.
+
+    """
+
+    def __new__(cls, name, bases, dct):
+        method_dict = {}  # name: [method, method, ...]
+        for base in bases:
+            for key, value in base.__dict__.items():
+                if callable(value):
+                    if key not in method_dict:
+                        method_dict[key] = []
+                    method_dict[key].append(value)
+
+        for key, value in dct.items():
+            if callable(value):
+                if key in method_dict:
+                    method_dict[key].append(value)
+                else:
+                    method_dict[key] = [value]
+
+        for key, methods in method_dict.items():
+
+            def wrapper(methods):
+                def wrapped(self, *args, **kwargs):
+                    for method in methods:
+                        method(self, *args, **kwargs)
+
+                return wrapped
+
+            dct[key] = wrapper(methods)
+
+        return super().__new__(cls, name, bases, dct)
+
+
+class GuiView(arcade.View, metaclass=MetaViewMixer):
     def __init__(self, window=None):
         super().__init__(window)
         self.show_gui = True
