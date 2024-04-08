@@ -3,6 +3,7 @@
  Thanks to https://github.com/kfields/arcade-imgui/blob/master/imdemo/imdemo/page.py
 """
 
+from abc import abstractmethod
 import arcade
 import imgui
 import imgui.core
@@ -12,10 +13,8 @@ log = logging.getLogger(__name__)
 
 
 class GuiView(arcade.View):
-    def __init__(self, window, name, title):
+    def __init__(self, window=None):
         super().__init__(window)
-        self.name = name
-        self.title = title
         self.show_gui = True
         self.widgets = []
 
@@ -36,26 +35,28 @@ class GuiView(arcade.View):
 
     @classmethod
     def create(self, app, name, title):
-        page = self(app, name, title)
-        page.reset()
-        return page
+        guiview = self(app, name, title)
+        guiview.reset()
+        return guiview
 
     def on_draw(self):
         arcade.start_render()
         self.camera_sprites.use()
-        self.draw_game()
+        self.draw_content()
 
         self.camera_gui.use()
         if self.show_gui:
             imgui.new_frame()
 
-            self.draw_mainmenu()
+            self.draw_navbar()
             self.draw_sidebar()
 
             self._widget_draw()
             self.draw_gui()
 
             imgui.end_frame()
+            imgui.render()
+            self.window.renderer.render(imgui.get_draw_data())
 
     def on_resize(self, width, height):
         self.camera_sprites.resize(width, height)
@@ -64,7 +65,8 @@ class GuiView(arcade.View):
 
     def on_update(self, delta_time: float):
         if self.clicked_quit:
-            self.on_quit()
+            log.info(f"Requesting Application close from GuiView: {self}")
+            self.window.request_close()
         return self.update(delta_time)
 
     def on_quit(self):
@@ -72,30 +74,19 @@ class GuiView(arcade.View):
 
     def on_show_view(self):
         self.show_gui = True
-        return super().on_show_view()
 
     def on_hide_view(self):
         self.show_gui = False
-        try:
-            imgui.new_frame()
-            imgui.end_frame()
-            return super().on_hide_view()
-        except imgui.core.ImGuiError:
-            log.warning("imgui error on hide view")
 
     def update(self, delta_time):
         pass
 
-    def draw_sidebar(self):
-        pass
-
-    def draw_mainmenu(self):
+    def draw_navbar(self):
         if imgui.begin_main_menu_bar():
             # File
             if imgui.begin_menu("File", True):
-                self.clicked_quit, selected_quit = imgui.menu_item(
-                    "Quit", "Cmd+Q", False, True
-                )
+                clicked, selected_quit = imgui.menu_item("Quit", "Cmd+Q", False, True)
+                self.clicked_quit = clicked or self.clicked_quit
                 imgui.end_menu()
 
             # View
@@ -108,7 +99,11 @@ class GuiView(arcade.View):
 
             imgui.end_main_menu_bar()
 
-    def draw_game(self):
+    @abstractmethod
+    def draw_content(self):
+        pass
+
+    def draw_sidebar(self):
         pass
 
     def draw_gui(self):
@@ -119,7 +114,7 @@ class GuiView(arcade.View):
             imgui.set_next_window_size(*widget.size[0], imgui.ONCE)
             imgui.set_next_window_position(
                 *self.rel_to_window(*widget.size[1], widget_size=widget.size[0]),
-                widget.draw_mode
+                widget.draw_mode,
             )
             widget.draw()
 

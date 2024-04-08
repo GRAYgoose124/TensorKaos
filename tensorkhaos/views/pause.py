@@ -1,6 +1,8 @@
 import arcade
 import arcade.gui
 
+from ..core.guiview import GuiView
+
 
 class PauseView(arcade.View):
     def __init__(self, window=None):
@@ -20,7 +22,6 @@ class PauseView(arcade.View):
 
     def on_hide_view(self):
         self.uimanager.disable()
-        return super().on_hide_view()
 
     def on_draw(self):
         arcade.start_render()
@@ -45,52 +46,69 @@ class PauseView(arcade.View):
 
     # UI building
     def __build_pause_screen(self):
-        pause_screen = arcade.gui.UIBoxLayout()
-        pause_title = arcade.gui.UITextArea(
-            text="Paused", font_size=20, font_name="Arial", color=arcade.color.GRAY_BLUE
-        )
-
-        pause_buttons = arcade.gui.UIBoxLayout()
+        # create buttons
         resume_button = arcade.gui.UIFlatButton(text="Resume", width=200, height=50)
-        resume_button.on_click = self.__resume_game
-        resume_button = arcade.gui.UIAnchorWidget(
-            child=resume_button, anchor_x="center", anchor_y="center"
+        resume_button.on_click = lambda _: (
+            self.uimanager.remove(self._settings_menu),
+            self.window.show_view("game"),
         )
-
         settings_button = arcade.gui.UIFlatButton(text="Settings", width=200, height=50)
         settings_button.on_click = lambda _: self.uimanager.add(self._settings_menu)
-        settings_button = arcade.gui.UIAnchorWidget(
-            child=settings_button, anchor_x="center", anchor_y="center", align_y=-55
-        )
-
-        def restart_on_click(_):
-            self.window.show_view("primary")
-            self.window.pages["primary"].restart_game()
 
         restart_button = arcade.gui.UIFlatButton(text="Restart", width=200, height=50)
-        restart_button.on_click = restart_on_click
-        restart_button = arcade.gui.UIAnchorWidget(
-            child=restart_button, anchor_x="center", anchor_y="center", align_y=-110
+        restart_button.on_click = lambda _: (
+            self.window.show_view("game"),
+            self.window.views["game"].setup(),
         )
 
         quit_button = arcade.gui.UIFlatButton(text="Quit", width=200, height=50)
         quit_button.on_click = lambda _: arcade.close_window()
-        quit_button = arcade.gui.UIAnchorWidget(
-            child=quit_button, anchor_x="center", anchor_y="center", align_y=-165
-        )
 
-        pause_buttons.add(resume_button)
-        pause_buttons.add(settings_button)
-        pause_buttons.add(restart_button)
-        pause_buttons.add(quit_button)
+        # position buttons
 
         # build screen
+        pause_screen = arcade.gui.UIBoxLayout()
         pause_screen.add(
-            arcade.gui.UIAnchorWidget(child=pause_title, align_x=150, anchor_y="top")
+            arcade.gui.UIAnchorWidget(
+                child=arcade.gui.UITextArea(
+                    text="Paused",
+                    font_size=20,
+                    font_name="Arial",
+                    color=arcade.color.GRAY_BLUE,
+                ),
+                align_x=150,
+                anchor_y="top",
+            )
         )
         pause_screen.add(
             arcade.gui.UIAnchorWidget(
-                child=pause_buttons, anchor_x="center", anchor_y="center"
+                child=arcade.gui.UIBoxLayout(
+                    children=[
+                        arcade.gui.UIAnchorWidget(
+                            child=resume_button, anchor_x="center", anchor_y="center"
+                        ),
+                        arcade.gui.UIAnchorWidget(
+                            child=settings_button,
+                            anchor_x="center",
+                            anchor_y="center",
+                            align_y=-55,
+                        ),
+                        arcade.gui.UIAnchorWidget(
+                            child=restart_button,
+                            anchor_x="center",
+                            anchor_y="center",
+                            align_y=-110,
+                        ),
+                        arcade.gui.UIAnchorWidget(
+                            child=quit_button,
+                            anchor_x="center",
+                            anchor_y="center",
+                            align_y=-165,
+                        ),
+                    ]
+                ),
+                anchor_x="center",
+                anchor_y="center",
             )
         )
 
@@ -120,12 +138,6 @@ class PauseView(arcade.View):
         )
 
         return menu
-
-    # UI callbacks
-    def __resume_game(self, event):
-        self.uimanager.remove(self._settings_menu)
-
-        self.window.show_view("primary")
 
     def __exit_game_dialog(self, button_text):
         if button_text == "Ok":

@@ -15,21 +15,20 @@ class TensorKhaos(arcade.Window):
             gl_version=(4, 3),
             resizable=True,
         )
-        self.center_window()
 
-        # imgui
         imgui.create_context()
         self.renderer = ArcadeRenderer(self)
         self.view_metrics = False
 
-        # pages/views
         self.views = {
-            "primary": PrimaryView(self),
+            "title": TitleView(),
+            "game": GridGameView(),
             "pause": PauseView(),
         }
 
         self._last_view = None
-        self.show_view("primary")
+        self.show_view("title")
+        self.center_window()
 
     def show_view(self, view):
         if view not in self.views:
@@ -48,13 +47,5 @@ class TensorKhaos(arcade.Window):
         if key == arcade.key.ESCAPE:
             self.show_view("pause")
 
-    def on_draw(self):
-        super().on_draw()
-        imgui.render()
-
-        # check if window was closed
-        if self._current_view is None:
-            self.close()
-            return
-
-        self.renderer.render(imgui.get_draw_data())
+    def request_close(self):
+        self.close()
