@@ -1,117 +1,31 @@
-import random
 import networkx as nx
+import random
 
-
-class GraphModule(nx.DiGraph):
-    """A GraphModule is a graph that is a node in a larger graph.
-    Because a game map is uninteresting when it's just a random graph, we will use pre-defined graph structures to generate the game map.
-
-    When we have a simple top-level graph, we can replace it's nodes with GraphModules to create a more complex graph.
-    """
-
-    def __init__(self, incoming_graph_data=None, **attr):
-        super().__init__(incoming_graph_data, **attr)
-        self.entry_node = None
-        self.exit_node = None
-
-    def set_entry_exit(self, entry, exit):
-        """Set the entry and exit nodes for the module."""
-        if entry in self.nodes and exit in self.nodes:
-            self.entry_node = entry
-            self.exit_node = exit
-        else:
-            raise ValueError("Entry/Exit nodes must be part of the module.")
-
-    def replace_node_with_module(self, node, module):
-        """Replace a node with a module, offsetting module positions by the original node's position."""
-        if not module.entry_node or not module.exit_node:
-            raise ValueError("Module must have defined entry and exit nodes.")
-
-        # Check if the node exists and get its position
-        if node not in self:
-            raise KeyError(f"Node '{node}' not found in the graph.")
-        original_pos = self.nodes[node].get("position", (0, 0))
-
-        in_edges = list(self.in_edges(node, data=True))
-        out_edges = list(self.out_edges(node, data=True))
-        self.remove_node(node)
-
-        # Offset module's nodes positions based on the original node's position and add them
-        for n, attrs in module.nodes(data=True):
-
-            module_pos = attrs.get("position", (0, 0))
-            offset_pos = (
-                original_pos[0] + module_pos[0],
-                original_pos[1] + module_pos[1],
-            )
-            attrs["position"] = offset_pos
-            self.add_node(n, **attrs)  # Add updated position to attrs
-
-        # update the edges in the main graph from the module
-        for u, v, attrs in module.edges(data=True):
-            u_offset = (
-                original_pos[0] + module.nodes[u]["position"][0],
-                original_pos[1] + module.nodes[u]["position"][1],
-            )
-            v_offset = (
-                original_pos[0] + module.nodes[v]["position"][0],
-                original_pos[1] + module.nodes[v]["position"][1],
-            )
-            attrs["position"] = (u_offset, v_offset)
-            self.add_edge(u, v, **attrs)
-
-        # Reconnect edges to the entry and exit nodes of the module
-        for u, v, attrs in in_edges:
-            self.add_edge(u, module.entry_node, **attrs)
-        for u, v, attrs in out_edges:
-            self.add_edge(module.exit_node, v, **attrs)
-
-    def add_node_with_position(self, node, position, **attr):
-        """Add a node with a specified position."""
-        attr["position"] = position
-        self.add_node(node, **attr)
+from ..module import GraphModule
 
 
 class GameGraph(GraphModule):
-    module_counter = 0  # Class variable to keep track of the number of modules created
-
     def integrate_module(self, node, module):
         """Integrate a module at a specific node."""
         self.replace_node_with_module(node, module)
         # Additional integration logic (e.g., adjusting edges, nodes) can be handled here
 
-    def new_unique_id(self):
-        """Generate a new unique ID for a module."""
-        unique_id = GameGraph.module_counter
-        GameGraph.module_counter += 1
-        return unique_id
-
     def create_dead_end(self):
-        unique_id = self.new_unique_id()
-
         dead_end = GraphModule()
-        # Append the unique_id to each node name to ensure uniqueness
-        dead_end.add_node_with_position(f"Entry_{unique_id}", (0, 0))
-        dead_end.add_node_with_position(f"DeadEnd_{unique_id}", (1, 0))
-        dead_end.add_edge(f"Entry_{unique_id}", f"DeadEnd_{unique_id}")
-        dead_end.set_entry_exit(f"Entry_{unique_id}", f"DeadEnd_{unique_id}")
+        entry = dead_end.add_positioned_module_node(f"Entry", (0, 0))
+        one_dead = dead_end.add_positioned_module_node(f"DeadEnd", (1, 0))
+        dead_end.add_edge(entry, one_dead)
+        dead_end.add_edge(one_dead, entry)
+        dead_end.set_entry_exit(entry, entry)
         return dead_end
 
     def create_broken_trident(self):
-        unique_id = self.new_unique_id()
         trident = GraphModule()
-        base = f"Base_{unique_id}"
-        left_arm = f"LeftArm_{unique_id}"
-        right_arm = f"RightArm_{unique_id}"
-        middle_arm = f"MiddleArm_{unique_id}"
-        middle_arm2 = f"MiddleArm2_{unique_id}"
-
-        # Adding nodes with unique identifiers
-        trident.add_node_with_position(base, (0, 0))
-        trident.add_node_with_position(left_arm, (-1, 1))
-        trident.add_node_with_position(right_arm, (1, 1))
-        trident.add_node_with_position(middle_arm, (0, 2))
-        trident.add_node_with_position(middle_arm2, (0, 3))
+        base = trident.add_positioned_module_node("Base", (0, 0))
+        left_arm = trident.add_positioned_module_node("LeftArm", (2, 1))
+        right_arm = trident.add_positioned_module_node("RightArm", (1, 1))
+        middle_arm = trident.add_positioned_module_node(f"MiddleArm", (0, 2))
+        middle_arm2 = trident.add_positioned_module_node(f"MiddleArm2", (0, 3))
 
         # Connect the arms to the base
         trident.add_edges_from(
@@ -122,24 +36,16 @@ class GameGraph(GraphModule):
                 (middle_arm, middle_arm2),
             ]
         )
-        trident.set_entry_exit(
-            base, middle_arm2
-        )  # Assuming Base is both entry and exit for simplicity
+        trident.set_entry_exit(base, middle_arm2)
 
         return trident
 
     def create_c_loop(self):
-        unique_id = self.new_unique_id()
-        entry = f"Entry_{unique_id}"
-        loop_start = f"LoopStart_{unique_id}"
-        loop_end = f"LoopEnd_{unique_id}"
-
         c_loop = GraphModule()
-        c_loop.add_node_with_position(entry, (0, 0))
-        c_loop.add_node_with_position(loop_start, (1, 0))
-        c_loop.add_node_with_position(loop_end, (1, 2))
+        entry = c_loop.add_positioned_module_node("Entry", (0, 0))
+        loop_start = c_loop.add_positioned_module_node("LoopStart", (1, 0))
+        loop_end = c_loop.add_positioned_module_node("LoopEnd", (1, 2))
 
-        # Connecting the nodes to form a C loop
         c_loop.add_edges_from(
             [(entry, loop_start), (loop_start, loop_end), (loop_end, entry)]
         )
@@ -156,7 +62,7 @@ def generate_complex_map():
     core_nodes = ["Start", "Mid", "End"]
     positions = [(0, 0), (3, 0), (6, 0)]  # Example positions
     for node, pos in zip(core_nodes, positions):
-        game_graph.add_node_with_position(node, pos)
+        game_graph.add_node(node, attr={"position": pos})
 
     game_graph.add_edges_from([("Start", "Mid"), ("Mid", "End")])
     game_graph.set_entry_exit("Start", "End")
@@ -172,6 +78,7 @@ def generate_complex_map():
     return game_graph
 
 
+# TODO: need to fix map node positions so they're offset properly
 # TODO: these need to properly assume the entry/exit node labels so that we can reference them easily in the final map
 def replace_nodes(map):
     """Iteratively replace nodes in a complex map with modules."""
