@@ -29,9 +29,7 @@ class GraphMapView(arcade.View):
 
     def setup_graph(self):
         self.graph = replace_nodes(generate_complex_map())
-        self.graph = loopback_deadends(
-            self.graph, random.choice(list(self.graph.nodes))
-        )
+        self.graph = loopback_deadends(self.graph)
         self.graph.entry_node = random.choice(list(self.graph.nodes))
         self.graph.exit_node = random.choice(list(self.graph.nodes))
         self.graph = connect_unreachable_nodes(self.graph)
@@ -127,6 +125,10 @@ class GraphMapView(arcade.View):
                         self.current_node = node
                         print(f"Moved to {self.current_node}")
                         break
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            self.window.show_view("game")
 
     def draw_chevron(
         self, start_pos, end_pos, color=arcade.color.WHITE, size=10, line_width=2

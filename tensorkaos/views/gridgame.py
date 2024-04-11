@@ -22,6 +22,7 @@ class GridGameView(GuiView, TestFeatureMixin):
         """Initialize or reset the game state."""
         self.grid_size = grid_size
         self.entity_list = arcade.SpriteList()
+        self.game_over = False
 
         ...
 
@@ -57,3 +58,7 @@ class GridGameView(GuiView, TestFeatureMixin):
         """Process a single game tick."""
         for entity in self.entity_list:
             entity.update()
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.ESCAPE:
+            self.window.show_view("pause")

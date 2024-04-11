@@ -199,7 +199,7 @@ def replace_nodes(map):
     return map
 
 
-def loopback_deadends(map, entry_node):
+def loopback_deadends(map):
     """If a map has no outgoing edges, loop it back to an "earlier" node in the path, closer to the entry node."""
     for node in list(map.nodes()):
         if map.out_degree(node) == 0:

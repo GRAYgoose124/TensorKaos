@@ -44,9 +44,5 @@ class TensorKaos(arcade.Window):
 
         super().show_view(self.views[view])
 
-    def on_key_press(self, key, modifiers):
-        if key == arcade.key.ESCAPE:
-            self.show_view("pause")
-
     def request_close(self):
         self.close()
