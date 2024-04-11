@@ -1,20 +1,19 @@
 import arcade
 import arcade.gui
 
-from ..core.guiview import GuiView
-
 
 class PauseView(arcade.View):
     def __init__(self, window=None):
         super().__init__(window)
-
         self.uimanager = arcade.gui.UIManager()
 
         self._pause_screen = self.__build_pause_screen()
         self._settings_menu = self.__build_settings_menu()
+        self._gameplay_elements_dock = self.__build_gameplay_elements_dock()
         self._exit_dialog_handle = None
 
         self.uimanager.add(self._pause_screen)
+        self.uimanager.add(self._gameplay_elements_dock)
 
     def on_show(self):
         arcade.set_background_color(arcade.color.AMAZON)
@@ -61,6 +60,11 @@ class PauseView(arcade.View):
             self.window.views["game"].setup(),
         )
 
+        return_to_title_button = arcade.gui.UIFlatButton(
+            text="Return to Title", width=200, height=50
+        )
+        return_to_title_button.on_click = lambda _: self.window.show_view("title")
+
         quit_button = arcade.gui.UIFlatButton(text="Quit", width=200, height=50)
         quit_button.on_click = lambda _: arcade.close_window()
 
@@ -100,10 +104,16 @@ class PauseView(arcade.View):
                             align_y=-110,
                         ),
                         arcade.gui.UIAnchorWidget(
-                            child=quit_button,
+                            child=return_to_title_button,
                             anchor_x="center",
                             anchor_y="center",
                             align_y=-165,
+                        ),
+                        arcade.gui.UIAnchorWidget(
+                            child=quit_button,
+                            anchor_x="center",
+                            anchor_y="center",
+                            align_y=-220,
                         ),
                     ]
                 ),
@@ -138,6 +148,27 @@ class PauseView(arcade.View):
         )
 
         return menu
+
+    def __build_gameplay_elements_dock(self):
+        # Build the dock for gameplay elements (e.g., Map View button)
+        dock = arcade.gui.UIBoxLayout(vertical=True)  # Vertical box layout for the dock
+
+        # Map View button
+        map_view_button = arcade.gui.UIFlatButton(text="Map View", width=120, height=40)
+        map_view_button.on_click = self.__open_map_view
+
+        dock.add(map_view_button)
+
+        # Position the dock in the top left corner of the pause screen
+        dock_widget = arcade.gui.UIAnchorWidget(
+            anchor_x="left", anchor_y="top", child=dock
+        )
+        return dock_widget
+
+    def __open_map_view(self, _):
+        # Transition to the Map View
+        # This assumes you have a MapView class defined elsewhere
+        self.window.show_view("map")
 
     def __exit_game_dialog(self, button_text):
         if button_text == "Ok":

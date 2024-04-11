@@ -23,6 +23,7 @@ class TensorKaos(arcade.Window):
         self.views = {
             "title": TitleView(),
             "game": GridGameView(),
+            "map": GraphMapView(),
             "pause": PauseView(),
         }
 

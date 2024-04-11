@@ -46,9 +46,14 @@ class TitleView(arcade.View):
 
         self.uimanager.draw()
 
+    def __start_new_game(self, _):
+        self.window.views["game"].setup()
+        self.window.views["map"].setup()
+        self.window.show_view("game")
+
     def __build_title_screen(self):
         start_button = arcade.gui.UIFlatButton(text="Start Game", width=200, height=50)
-        start_button.on_click = lambda _: self.window.show_view("game")
+        start_button.on_click = self.__start_new_game
 
         title_screen_layout = arcade.gui.UIBoxLayout()
         title_screen_layout.add(start_button)
