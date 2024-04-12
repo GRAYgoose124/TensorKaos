@@ -9,7 +9,7 @@ class GraphModule(nx.DiGraph):
     When we have a simple top-level graph, we can replace it's nodes with GraphModules to create a more complex graph.
     """
 
-    module_counter = 0  # Class variable to keep track of the number of modules created
+    module_counter = 0
 
     def __init__(self, incoming_graph_data=None, **attr):
         super().__init__(incoming_graph_data, **attr)
@@ -24,7 +24,31 @@ class GraphModule(nx.DiGraph):
         else:
             raise ValueError("Entry/Exit nodes must be part of the module.")
 
-    def replace_node_with_module(self, node, module):
+    def __offset_module_by_pos(self, module, pos):
+        # Offset module's nodes positions based on the original node's position and add them
+        for n, attrs in module.nodes(data=True):
+            module_pos = attrs.get("position", (0, 0))
+            offset_pos = (
+                pos[0] + module_pos[0],
+                pos[1] + module_pos[1],
+            )
+            attrs["position"] = offset_pos
+            self.add_node(n, **attrs)  # Add updated position to attrs
+
+        # update the edges in the main graph from the module
+        for u, v, attrs in module.edges(data=True):
+            u_offset = (
+                pos[0] + module.nodes[u]["position"][0],
+                pos[1] + module.nodes[u]["position"][1],
+            )
+            v_offset = (
+                pos[0] + module.nodes[v]["position"][0],
+                pos[1] + module.nodes[v]["position"][1],
+            )
+            attrs["position"] = (u_offset, v_offset)
+            self.add_edge(u, v, **attrs)
+
+    def integrate_module(self, node, module):
         """Replace a node with a module, offsetting module positions by the original node's position."""
         if not module.entry_node or not module.exit_node:
             raise ValueError("Module must have defined entry and exit nodes.")
@@ -38,29 +62,11 @@ class GraphModule(nx.DiGraph):
         out_edges = list(self.out_edges(node, data=True))
         self.remove_node(node)
 
-        # Offset module's nodes positions based on the original node's position and add them
-        for n, attrs in module.nodes(data=True):
+        #  add all nodes as node_{module_node}
+        for n in list(module.nodes):
+            self.add_node(f"{node}_{n}", **module.nodes[n])
 
-            module_pos = attrs.get("position", (0, 0))
-            offset_pos = (
-                original_pos[0] + module_pos[0],
-                original_pos[1] + module_pos[1],
-            )
-            attrs["position"] = offset_pos
-            self.add_node(n, **attrs)  # Add updated position to attrs
-
-        # update the edges in the main graph from the module
-        for u, v, attrs in module.edges(data=True):
-            u_offset = (
-                original_pos[0] + module.nodes[u]["position"][0],
-                original_pos[1] + module.nodes[u]["position"][1],
-            )
-            v_offset = (
-                original_pos[0] + module.nodes[v]["position"][0],
-                original_pos[1] + module.nodes[v]["position"][1],
-            )
-            attrs["position"] = (u_offset, v_offset)
-            self.add_edge(u, v, **attrs)
+        self.__offset_module_by_pos(module, original_pos)
 
         # Reconnect edges to the entry and exit nodes of the module
         for u, v, attrs in in_edges:

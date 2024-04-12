@@ -5,10 +5,13 @@ from ..module import GraphModule
 
 
 class GameGraph(GraphModule):
-    def integrate_module(self, node, module):
-        """Integrate a module at a specific node."""
-        self.replace_node_with_module(node, module)
-        # Additional integration logic (e.g., adjusting edges, nodes) can be handled here
+    module_counter = 0  # Class variable to keep track of the number of modules created
+
+    def new_unique_id(self):
+        """Generate a new unique ID for a module."""
+        unique_id = self.module_counter
+        self.module_counter += 1
+        return unique_id
 
     def create_dead_end(self):
         dead_end = GraphModule()
@@ -54,7 +57,7 @@ class GameGraph(GraphModule):
         return c_loop
 
 
-def generate_complex_map():
+def generate_base_complex():
     """Generate a complex map with chiral structures."""
     game_graph = GameGraph()
 
@@ -76,6 +79,15 @@ def generate_complex_map():
     game_graph.integrate_module("End", dead_end)
 
     return game_graph
+
+
+def finalize_entry_exit(map, default_entry="Start_", default_exit="End_"):
+    """Finalize the entry and exit nodes for the map."""
+    entry = random.choice([n for n in map.nodes() if n.startswith(default_entry)])
+    exit = random.choice([n for n in map.nodes() if n.startswith(default_exit)])
+    map.entry_node = entry
+    map.exit_node = exit
+    return map
 
 
 # TODO: need to fix map node positions so they're offset properly
@@ -121,18 +133,29 @@ def connect_unreachable_nodes(map):
     """Connect nodes that are unreachable from the entry node."""
     print(f"Entry node: {map.entry_node}, Exit node: {map.exit_node}")
     reachable = nx.descendants(map, map.entry_node)
+    reachable.add(map.entry_node)
     unreachable = set(map.nodes) - reachable
     reachable = list(reachable)
 
     if unreachable:
         for node in unreachable:
             if random.random() < 0.75:
+                # TODO: reachable can be empty, fix
                 map.add_edge(random.choice(reachable), node)
     return map
 
 
+def complex_map():
+    graph = generate_base_complex()
+    replace_nodes(graph)
+    loopback_deadends(graph)
+    finalize_entry_exit(graph, default_entry="Start_", default_exit="End_")
+    connect_unreachable_nodes(graph)
+    return graph
+
+
 if __name__ == "__main__":
-    graph = generate_complex_map()
+    graph = generate_base_complex()
     print(graph.nodes(data=True))
     print(graph.edges(data=True))
     print(graph.entry_node, graph.exit_node)

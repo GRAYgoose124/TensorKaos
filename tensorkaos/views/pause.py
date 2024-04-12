@@ -56,8 +56,8 @@ class PauseView(arcade.View):
 
         restart_button = arcade.gui.UIFlatButton(text="Restart", width=200, height=50)
         restart_button.on_click = lambda _: (
-            self.window.show_view("game"),
             self.window.views["game"].setup(),
+            self.window.show_view("game"),
         )
 
         return_to_title_button = arcade.gui.UIFlatButton(

@@ -13,7 +13,8 @@ class TensorKaos(arcade.Window):
             720,
             "TensorKaos: on the edge of chaos, there is also order.",
             gl_version=(4, 3),
-            resizable=True,
+            resizable=False,
+            antialiasing=True,
         )
 
         imgui.create_context()

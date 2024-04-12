@@ -124,6 +124,7 @@ class GuiView(arcade.View, metaclass=MetaViewMixer):
         pass
 
     def draw_navbar(self):
+        # TODO data driven
         if imgui.begin_main_menu_bar():
             # File
             if imgui.begin_menu("File", True):
@@ -133,10 +134,12 @@ class GuiView(arcade.View, metaclass=MetaViewMixer):
 
             # View
             if imgui.begin_menu("View", True):
-                clicked_metrics, self.window.view_metrics = imgui.menu_item(
-                    "Metrics", "Cmd+M", self.window.view_metrics, True
+                clicked_map, show_map = imgui.menu_item(
+                    "Map", "Cmd+Shift+M", False, True
                 )
 
+                if clicked_map:
+                    self.window.show_view("map")
                 imgui.end_menu()
 
             imgui.end_main_menu_bar()

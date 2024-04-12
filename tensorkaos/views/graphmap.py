@@ -1,14 +1,16 @@
 import math
+import os
 import arcade
 import random
 import networkx as nx
 
+from ..core.utilities import setup_logging
+from ..core.guiview import GuiView
 from ..core.graph.builders.gamegen import (
-    generate_complex_map,
-    replace_nodes,
-    loopback_deadends,
-    connect_unreachable_nodes,
+    complex_map,
 )
+
+log = setup_logging(__name__)
 
 
 def draw_chevron(start_pos, end_pos, color=arcade.color.WHITE, size=10, line_width=2):
@@ -43,23 +45,40 @@ def draw_chevron(start_pos, end_pos, color=arcade.color.WHITE, size=10, line_wid
     )
 
 
+# TODO: GuiView, but messes up the mouse click handling
 class GraphMapView(arcade.View):
     def __init__(self, window=None):
         super().__init__(window)
         self.graph = None  # This will store the networkx graph
         self.current_node = None
         self.node_size = 15  # Radius of the node for drawing
-        self.map_offset = (150, 50)  # Offset for drawing the map
+        self.map_offset = (self.window.width // 2, self.window.height // 2)
         self.setup()
 
     def setup(self):
-        self.graph = replace_nodes(generate_complex_map())
-        self.graph = loopback_deadends(self.graph)
-        self.graph.entry_node = random.choice(list(self.graph.nodes))
-        self.graph.exit_node = random.choice(list(self.graph.nodes))
-        self.graph = connect_unreachable_nodes(self.graph)
+        self.graph = complex_map()
 
-        print(f"Graph nodes: {list(self.graph.nodes(data=True))}")
+        if os.getenv("DEBUG_MAP_LAYOUT", False):
+            pos = nx.get_node_attributes(self.graph, "position")
+            # start with the pos gotten from self.graph.nodes(data='position')
+            for _ in range(3):
+                pos = nx.spring_layout(
+                    self.graph,
+                    pos=pos,
+                    scale=2.0,
+                    k=15.0,
+                    iterations=50,
+                    threshold=0.001,
+                )
+                # average the positions with the original positions
+                for node in pos:
+                    pos[node] = (
+                        (pos[node][0] + self.graph.nodes[node]["position"][0]) / 2,
+                        (pos[node][1] + self.graph.nodes[node]["position"][1]) / 2,
+                    )
+
+            nx.set_node_attributes(self.graph, pos, "position")
+            print(f"Graph nodes: {list(self.graph.nodes(data=True))}")
 
         self.current_node = self.graph.entry_node
 
@@ -70,14 +89,13 @@ class GraphMapView(arcade.View):
     def on_draw(self):
         arcade.start_render()
         # TODO: Calculate scaling factors for dynamic display adjustments, if needed
-
         self.__draw_map_edges()
         self.__draw_map_nodes()
         self.__draw_map_labels()
 
     def on_mouse_press(self, x, y, button, modifiers):
         if button == arcade.MOUSE_BUTTON_LEFT:
-            print(f"Clicked at: {x}, {y}")  # Debugging click positions
+            log.debug(f"Clicked at: {x}, {y}")  # Debugging click positions
             for node, data in self.graph.nodes(data=True):
                 if self.__clicked_in_node(x, y, node):
                     print(f"Clicked on node: {node}")
@@ -85,24 +103,34 @@ class GraphMapView(arcade.View):
                         self.current_node = node
                         print(f"Moved to {self.current_node}")
                         break
+        elif button == arcade.MOUSE_BUTTON_RIGHT:
+            log.debug(f"Right-clicked at: {x}, {y}")
+            self.map_offset += (x, y)
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
             self.window.show_view("game")
 
+    def __get_offset_pos(self, pos):
+        new_pos = (
+            self.map_offset[0] + pos[0] * 100,
+            self.map_offset[1] + pos[1] * 100,
+        )
+        # offset by current node position
+        if self.current_node:
+            current_pos = self.graph.nodes[self.current_node]["position"]
+            new_pos = (
+                new_pos[0] - current_pos[0] * 100,
+                new_pos[1] - current_pos[1] * 100,
+            )
+        return new_pos
+
     def __draw_map_edges(self):
-        # Draw edges with chevrons
         for u, v in self.graph.edges():
             start_pos = self.graph.nodes[u]["position"]
             end_pos = self.graph.nodes[v]["position"]
-            visual_start_pos = (
-                self.map_offset[0] + start_pos[0] * 100,
-                self.map_offset[1] + start_pos[1] * 100,
-            )
-            visual_end_pos = (
-                self.map_offset[0] + end_pos[0] * 100,
-                self.map_offset[1] + end_pos[1] * 100,
-            )
+            visual_start_pos = self.__get_offset_pos(start_pos)
+            visual_end_pos = self.__get_offset_pos(end_pos)
 
             color = (
                 arcade.color.ORANGE_RED
@@ -122,10 +150,7 @@ class GraphMapView(arcade.View):
         # Draw nodes and highlight possible destinations
         for node, data in self.graph.nodes(data=True):
             position = data["position"]
-            visual_position = (
-                self.map_offset[0] + position[0] * 100,
-                self.map_offset[1] + position[1] * 100,
-            )
+            visual_position = self.__get_offset_pos(position)
             arcade.draw_circle_filled(
                 *visual_position, self.node_size, arcade.color.ULTRAMARINE_BLUE
             )
@@ -138,29 +163,32 @@ class GraphMapView(arcade.View):
         # Highlight neighbors (possible destinations) of the current node
         for neighbor in self.graph.neighbors(self.current_node):
             neighbor_pos = self.graph.nodes[neighbor]["position"]
-            visual_neighbor_pos = (
-                self.map_offset[0] + neighbor_pos[0] * 100,
-                self.map_offset[1] + neighbor_pos[1] * 100,
-            )
+            visual_neighbor_pos = self.__get_offset_pos(neighbor_pos)
             arcade.draw_circle_outline(
                 *visual_neighbor_pos, self.node_size + 10, arcade.color.YELLOW, 3
             )  # Larger yellow circle
 
     def __clicked_in_node(self, x, y, node):
         position = self.graph.nodes[node]["position"]
-        visual_position = (
-            self.map_offset[0] + position[0] * 100,
-            self.map_offset[1] + position[1] * 100,
-        )
-        return (
+        visual_position = self.__get_offset_pos(position)
+        inside_x = (
             visual_position[0] - self.node_size
             <= x
             <= visual_position[0] + self.node_size
-        ) and (
+        )
+        inside_y = (
             visual_position[1] - self.node_size
             <= y
             <= visual_position[1] + self.node_size
         )
 
+        return inside_x and inside_y
+
     def __can_move_to(self, node):
         return node in [n for n in self.graph.neighbors(self.current_node)]
+
+    def __clip_pos_to_window(self, pos):
+        x, y = pos
+        x = max(self.node_size, min(x, self.window.width - self.node_size))
+        y = max(self.node_size, min(y, self.window.height - self.node_size))
+        return x, y

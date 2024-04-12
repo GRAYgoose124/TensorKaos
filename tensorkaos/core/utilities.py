@@ -1,4 +1,5 @@
 import logging, os
+from pathlib import Path
 
 
 class ModuleNameFormatter(logging.Formatter):
@@ -29,3 +30,9 @@ def setup_logging(name=None):
         log.addHandler(console)
 
         return log
+
+
+def get_assets_path():
+    assets_path = Path(__file__).parent.parent.parent / "assets"
+
+    return assets_path

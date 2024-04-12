@@ -1,4 +1,5 @@
 import arcade
+import imgui
 
 from ..core.guiview import GuiView, ViewMixin
 from ..core.utilities import setup_logging
@@ -8,7 +9,7 @@ log = setup_logging(__name__)
 
 class TestFeatureMixin(ViewMixin):
     def on_update(self, delta_time):
-        log.debug("TestMixin.on_update")
+        pass
 
 
 class GridGameView(GuiView, TestFeatureMixin):
@@ -51,8 +52,6 @@ class GridGameView(GuiView, TestFeatureMixin):
             self.tick()
             delta_time -= self.target_tick_rate
             n += 1
-
-        log.debug(f"Processed {n} ticks.")
 
     def tick(self):
         """Process a single game tick."""
