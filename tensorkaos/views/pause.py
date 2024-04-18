@@ -47,18 +47,13 @@ class PauseView(arcade.View):
     def __build_pause_screen(self):
         # create buttons
         resume_button = arcade.gui.UIFlatButton(text="Resume", width=200, height=50)
-        resume_button.on_click = lambda _: (
-            self.uimanager.remove(self._settings_menu),
-            self.window.show_view("game"),
-        )
+        resume_button.on_click = self.__resume_game
+
         settings_button = arcade.gui.UIFlatButton(text="Settings", width=200, height=50)
         settings_button.on_click = lambda _: self.uimanager.add(self._settings_menu)
 
         restart_button = arcade.gui.UIFlatButton(text="Restart", width=200, height=50)
-        restart_button.on_click = lambda _: (
-            self.window.views["game"].setup(),
-            self.window.show_view("game"),
-        )
+        restart_button.on_click = self.__restart_game
 
         return_to_title_button = arcade.gui.UIFlatButton(
             text="Return to Title", width=200, height=50
@@ -173,3 +168,11 @@ class PauseView(arcade.View):
     def __exit_game_dialog(self, button_text):
         if button_text == "Ok":
             arcade.close_window()
+
+    def __resume_game(self, _):
+        self.uimanager.remove(self._settings_menu)
+        self.window.show_view("game")
+
+    def __restart_game(self, _):
+        self.window.views["game"].setup()
+        self.window.show_view("game")

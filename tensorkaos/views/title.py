@@ -4,7 +4,7 @@ import arcade
 import arcade.gui
 from arcade.experimental import Shadertoy
 
-from ..core.utilities import setup_logging, get_assets_path
+from ..utilities.misc import setup_logging, get_assets_path
 
 log = setup_logging(__name__)
 

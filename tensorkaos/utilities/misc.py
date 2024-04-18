@@ -36,3 +36,4 @@ def get_assets_path():
     assets_path = Path(__file__).parent.parent.parent / "assets"
 
     return assets_path
+

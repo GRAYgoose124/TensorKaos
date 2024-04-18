@@ -1,5 +1,5 @@
 from .window import TensorKaos
-from .core.utilities import setup_logging
+from .utilities.misc import setup_logging
 
 
 def main():
